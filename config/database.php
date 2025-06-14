@@ -3,7 +3,7 @@ class Database {
     private $host = 'localhost';
     private $db_name = 'kost_management';
     private $username = 'root';
-    private $password = 'root';
+    private $password = '';
     private $conn;
 
     public function getConnection() {

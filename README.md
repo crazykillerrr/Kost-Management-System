@@ -1,305 +1,113 @@
-# 🏠  Kost Management System (KostQ)
+# KostQ - Sistem Manajemen Kost
 
-Sistem manajemen kost berbasis web yang dibangun menggunakan PHP, MySQL, dan Bootstrap. Sistem ini dirancang untuk memudahkan pengelolaan kost, mulai dari manajemen kamar, booking, pembayaran, hingga laporan keuangan.
+KostQ adalah platform manajemen kost online yang memungkinkan penyewa untuk mencari dan memesan kamar kost, serta admin untuk mengelola properti, booking, dan pembayaran. Sistem ini dibangun menggunakan PHP dan MySQL dengan memanfaatkan stored procedure, trigger, transaction, dan stored function untuk memastikan integritas data dan keamanan transaksi.
 
-## 📋 Deskripsi Proyek
+![KostQ](assets/payment-info.png)
 
-Sistem Manajemen Kost adalah aplikasi web yang memungkinkan pemilik kost untuk mengelola properti mereka secara digital. Sistem ini menyediakan interface untuk admin (pemilik kost) dan penyewa dengan fitur-fitur lengkap untuk operasional sehari-hari.
+## 📌 Deskripsi Proyek
 
-### 🎯 Tujuan Proyek
-- Digitalisasi proses manajemen kost
-- Otomatisasi sistem booking dan pembayaran
-- Penyediaan laporan keuangan yang akurat
-- Meningkatkan efisiensi operasional kost
+KostQ memiliki fitur-fitur utama sebagai berikut:
 
-### 👥 Target Pengguna
-- **Admin/Pemilik Kost**: Mengelola kamar, booking, pembayaran, dan laporan
-- **Penyewa**: Melakukan booking kamar, upload bukti pembayaran, dan mengelola profil
+- **Manajemen Kamar**: Admin dapat menambah, mengedit, dan menghapus kamar kost dengan fasilitas lengkap
+- **Sistem Booking**: Penyewa dapat melakukan booking kamar dengan berbagai durasi sewa
+- **Manajemen Pembayaran**: Sistem pembayaran dengan upload bukti transfer dan verifikasi admin
+- **Dashboard Multi-Role**: Dashboard khusus untuk penyewa dan admin dengan fitur yang berbeda
+- **Laporan & Analytics**: Sistem pelaporan komprehensif untuk monitoring bisnis
 
-## 🚀 Fitur Utama
+Sistem ini mengimplementasikan konsep database lanjutan untuk memastikan keamanan dan integritas data dalam proses manajemen kost.
 
-### Admin Features
-- ✅ Dashboard dengan statistik lengkap
-- 🏠 Manajemen kamar (CRUD)
-- 📅 Manajemen booking dan approval
-- 💰 Verifikasi pembayaran
-- 👥 Manajemen pengguna
-- 📊 Laporan keuangan dan operasional
-- 🗄️ Backup dan restore database
-- ⚙️ Task scheduler otomatis
+## 📊 Detail Implementasi
 
-### User Features
-- 🔍 Pencarian dan filter kamar
-- 📝 Booking kamar online
-- 💳 Upload bukti pembayaran
-- 📱 Manajemen profil
-- 📋 Riwayat booking
+### 🧠 Stored Procedure
 
-## 🛠️ Teknologi yang Digunakan
+Stored procedure digunakan untuk mengenkapsulasi logika bisnis kompleks di sisi database, memastikan konsistensi dan keamanan operasi.
 
-- **Backend**: PHP 7.4+
-- **Database**: MySQL 8.0+
-- **Frontend**: HTML5, CSS3, JavaScript, Bootstrap 5
-- **Icons**: Font Awesome
-- **Server**: Apache/Nginx
+#### 1. `BookRoom` - Prosedur untuk booking kamar
 
-## 📁 Struktur Proyek
+**Implementasi di file**: `booking.php`
 
-\`\`\`
-kost-management-system/
-├── admin/                      # Panel admin
-│   ├── dashboard.php          # Dashboard admin
-│   ├── rooms.php              # Manajemen kamar
-│   ├── bookings.php           # Manajemen booking
-│   ├── payments.php           # Manajemen pembayaran
-│   ├── users.php              # Manajemen pengguna
-│   ├── reports.php            # Laporan sistem
-│   └── ...
-├── config/                     # Konfigurasi sistem
-│   ├── database.php           # Koneksi database
-│   ├── session.php            # Manajemen session
-│   └── paths.php              # Path konfigurasi
-├── database/                   # Database schema
-│   ├── schema.sql             # Struktur database
-│   ├── procedures.sql         # Stored procedures
-│   ├── functions.sql          # Functions
-│   └── triggers.sql           # Triggers
-├── includes/                   # File include
-│   ├── header.php             # Header template
-│   ├── navbar.php             # Navigation bar
-│   └── footer.php             # Footer template
-├── scripts/                    # Scripts otomatis
-│   ├── task-scheduler.php     # Task scheduler
-│   ├── backup.sql             # Backup script
-│   └── check-schema.sql       # Schema checker
-├── uploads/                    # File uploads
-│   ├── receipts/              # Bukti pembayaran
-│   └── payment_proofs/        # Bukti transfer
-├── backups/                    # Database backups
-├── index.php                   # Halaman utama
-├── login.php                   # Halaman login
-├── register.php               # Halaman registrasi
-├── booking.php                # Halaman booking
-└── README.md                   # Dokumentasi
-\`\`\`
+```php
+// Panggil stored procedure untuk booking
+$booking_query = "CALL BookRoom(?, ?, ?, ?, @booking_id, @status)";
+$booking_stmt = $db->prepare($booking_query);
+$booking_stmt->execute([$user_id, $room_id, $start_date, $duration_months]);
 
-## 🗄️ Detail Implementasi Database
+// Ambil hasil dari procedure
+$result_query = "SELECT @booking_id as booking_id, @status as status";
+$result_stmt = $db->prepare($result_query);
+$result_stmt->execute();
+$result = $result_stmt->fetch(PDO::FETCH_ASSOC);
 
-### Stored Procedures
+if (strpos($result['status'], 'SUCCESS') !== false) {
+    $success = "Booking berhasil dibuat!";
+    $booking_id = $result['booking_id'];
+} else {
+    $error = $result['status'];
+}
 
-Sistem menggunakan stored procedures untuk operasi kompleks yang melibatkan multiple tables dan business logic.
+```
 
-#### 1. BookRoom Procedure
-**File**: `database/procedures.sql`
+Prosedur ini menangani validasi ketersediaan kamar, perhitungan total biaya, pembuatan booking, dan pembuatan record pembayaran secara atomik.
 
-\`\`\`sql
-DELIMITER //
-CREATE PROCEDURE BookRoom(
-    IN p_user_id INT,
-    IN p_room_id INT,
-    IN p_start_date DATE,
-    IN p_duration_months INT,
-    OUT p_booking_id INT,
-    OUT p_status VARCHAR(50)
-)
-BEGIN
-    DECLARE room_available INT DEFAULT 0;
-    DECLARE room_price DECIMAL(10,2);
-    DECLARE total_amount DECIMAL(10,2);
-    DECLARE end_date DATE;
-    
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SET p_status = 'ERROR: Transaction failed';
-        SET p_booking_id = 0;
-    END;
-    
-    START TRANSACTION;
-    
-    -- Check if room is available
-    SELECT COUNT(*), price INTO room_available, room_price
-    FROM rooms 
-    WHERE id = p_room_id AND status = 'available';
-    
-    IF room_available = 0 THEN
-        SET p_status = 'ERROR: Room not available';
-        SET p_booking_id = 0;
-        ROLLBACK;
-    ELSE
-        -- Calculate total amount and end date
-        SET total_amount = room_price * p_duration_months;
-        SET end_date = DATE_ADD(p_start_date, INTERVAL p_duration_months MONTH);
-        
-        -- Insert booking
-        INSERT INTO bookings (user_id, room_id, booking_date, start_date, end_date, duration_months, total_amount)
-        VALUES (p_user_id, p_room_id, CURDATE(), p_start_date, end_date, p_duration_months, total_amount);
-        
-        SET p_booking_id = LAST_INSERT_ID();
-        SET p_status = 'SUCCESS: Booking created successfully';
-        
-        COMMIT;
-    END IF;
-END //
-DELIMITER ;
-\`\`\`
+#### 2. `ApproveBooking` - Prosedur untuk approve booking
 
-**Implementasi dalam Kode PHP**:
-\`\`\`php
-// File: booking.php (lines 45-75)
+**Implementasi di file**: `admin/bookings.php`
+
+```php
 try {
-    $db->beginTransaction();
+    // Gunakan stored procedure untuk approval
+    $stmt = $db->prepare("CALL ApproveBooking(?, ?, @status)");
+    $stmt->bindParam(1, $booking_id, PDO::PARAM_INT);
+    $stmt->bindParam(2, $admin_id, PDO::PARAM_INT);
+    $stmt->execute();
     
-    // Calculate end date
-    $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $duration . ' months'));
-    $total_amount = $room['price'] * $duration;
+    // Ambil hasil
+    $result_stmt = $db->query("SELECT @status as status");
+    $result = $result_stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Create booking using stored procedure (alternative implementation)
-    $booking_query = "INSERT INTO bookings (user_id, room_id, start_date, end_date, duration_months, total_amount, status, booking_date, created_at) 
-                     VALUES (?, ?, ?, ?, ?, ?, 'pending', CURDATE(), NOW())";
-    $booking_stmt = $db->prepare($booking_query);
-    $booking_stmt->execute([$user_id, $room_id, $start_date, $end_date, $duration, $total_amount]);
-    
-    $booking_id = $db->lastInsertId();
-    
-    // Create payment record
-    $payment_status = ($payment_method === 'cash') ? 'completed' : 'pending';
-    $payment_query = "INSERT INTO payments (booking_id, amount, payment_date, payment_method, status) 
-                     VALUES (?, ?, CURDATE(), ?, ?)";
-    $payment_stmt = $db->prepare($payment_query);
-    $payment_stmt->execute([$booking_id, $total_amount, $payment_method, $payment_status]);
-    
-    // Update room status
-    $room_update = "UPDATE rooms SET status = 'booked' WHERE id = ?";
-    $room_stmt = $db->prepare($room_update);
-    $room_stmt->execute([$room_id]);
-    
-    $db->commit();
-} catch (PDOException $e) {
-    $db->rollback();
-    $error = "Terjadi kesalahan sistem. Silakan coba lagi.";
-}
-\`\`\`
-
-#### 2. ApproveBooking Procedure
-**File**: `database/procedures.sql`
-
-\`\`\`sql
-DELIMITER //
-CREATE PROCEDURE ApproveBooking(
-    IN p_booking_id INT,
-    IN p_admin_id INT,
-    OUT p_status VARCHAR(50)
-)
-BEGIN
-    DECLARE room_id_val INT;
-    DECLARE booking_exists INT DEFAULT 0;
-    
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SET p_status = 'ERROR: Transaction failed';
-    END;
-    
-    START TRANSACTION;
-    
-    -- Check if booking exists and is pending
-    SELECT COUNT(*), room_id INTO booking_exists, room_id_val
-    FROM bookings 
-    WHERE id = p_booking_id AND status = 'pending';
-    
-    IF booking_exists = 0 THEN
-        SET p_status = 'ERROR: Booking not found or already processed';
-        ROLLBACK;
-    ELSE
-        -- Update booking status
-        UPDATE bookings SET status = 'approved' WHERE id = p_booking_id;
-        
-        -- Update room status
-        UPDATE rooms SET status = 'occupied' WHERE id = room_id_val;
-        
-        -- Update payment status if receipt exists
-        UPDATE payments p
-        SET p.status = 'completed', p.verified_by = p_admin_id, p.verified_at = NOW()
-        WHERE p.booking_id = p_booking_id AND p.receipt_url IS NOT NULL;
-        
-        -- Log activity
-        INSERT INTO activity_logs (user_id, action, description)
-        VALUES (p_admin_id, 'APPROVE_BOOKING', CONCAT('Approved booking ID: ', p_booking_id));
-        
-        SET p_status = 'SUCCESS: Booking approved successfully';
-        COMMIT;
-    END IF;
-END //
-DELIMITER ;
-\`\`\`
-
-**Implementasi dalam Kode PHP**:
-\`\`\`php
-// File: admin/approve-booking.php (lines 25-45)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_booking'])) {
-    $booking_id = $_POST['booking_id'];
-    $admin_id = getUserId();
-    
-    try {
-        // Call stored procedure
-        $stmt = $db->prepare("CALL ApproveBooking(?, ?, @status)");
-        $stmt->execute([$booking_id, $admin_id]);
-        
-        // Get the output status
-        $result = $db->query("SELECT @status as status")->fetch();
-        
-        if (strpos($result['status'], 'SUCCESS') === 0) {
-            $_SESSION['success'] = "Booking berhasil disetujui!";
-        } else {
-            $_SESSION['error'] = $result['status'];
-        }
-    } catch (PDOException $e) {
-        $_SESSION['error'] = "Terjadi kesalahan sistem.";
+    if (strpos($result['status'], 'SUCCESS') !== false) {
+        $success = "Booking berhasil diapprove!";
+    } else {
+        $error = "Gagal approve booking: " . $result['status'];
     }
-    
-    header('Location: bookings.php');
-    exit();
+} catch (PDOException $e) {
+    $error = "Terjadi kesalahan saat approve booking.";
 }
-\`\`\`
+```
 
-### Database Triggers
+Prosedur ini menangani proses approval booking, update status kamar menjadi occupied, dan logging aktivitas admin.
 
-Sistem menggunakan triggers untuk otomatisasi dan logging aktivitas.
+#### 3. `CalculateMonthlyRevenue` - Prosedur untuk menghitung pendapatan bulanan
 
-#### 1. User Activity Log Trigger
-**File**: `database/triggers.sql`
+**Implementasi di file**: `admin/reports.php`
 
-\`\`\`sql
--- Trigger untuk log aktivitas user
-DELIMITER //
-CREATE TRIGGER user_activity_log 
-AFTER INSERT ON users
-FOR EACH ROW
-BEGIN
-    INSERT INTO activity_logs (user_id, action, description)
-    VALUES (NEW.id, 'USER_REGISTERED', CONCAT('New user registered: ', NEW.username));
-END //
-DELIMITER ;
-\`\`\`
+```php
+// Hitung revenue bulanan menggunakan stored procedure
+$revenue_query = "CALL CalculateMonthlyRevenue(?, ?, @revenue, @bookings, @avg_value, @status)";
+$stmt = $db->prepare($revenue_query);
+$stmt->execute([date('Y'), date('n')]);
 
-**Implementasi dalam Kode**:
-\`\`\`php
-// File: register.php (lines 35-50)
-// Trigger otomatis dijalankan saat user baru didaftarkan
-$query = "INSERT INTO users (username, email, password, full_name, phone, role, created_at) 
-          VALUES (?, ?, ?, ?, ?, 'penyewa', NOW())";
-$stmt = $db->prepare($query);
-$stmt->execute([$username, $email, $hashed_password, $full_name, $phone]);
+// Ambil hasil
+$result_query = "SELECT @revenue as revenue, @bookings as bookings, @avg_value as avg_value";
+$stmt = $db->prepare($result_query);
+$stmt->execute();
+$revenue_data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Trigger 'user_activity_log' otomatis mencatat log aktivitas
-\`\`\`
+echo "Revenue Bulan Ini: Rp " . number_format($revenue_data['revenue'], 0, ',', '.');
+```
 
-#### 2. Booking Status Update Trigger
-**File**: `database/triggers.sql`
+Prosedur ini menghitung total pendapatan, jumlah booking, dan rata-rata nilai booking untuk periode tertentu.
 
-\`\`\`sql
--- Trigger untuk update room status ketika booking approved
+### 🚨 Trigger
+
+Trigger adalah kode yang dijalankan secara otomatis di database ketika terjadi operasi tertentu (INSERT, UPDATE, DELETE) pada tabel. Dalam sistem KostQ, trigger diimplementasikan untuk menjaga konsistensi data dan otomatisasi proses bisnis.
+
+#### Implementasi Trigger di Database
+
+1. **Trigger untuk Auto-Update Room Status**
+
+
+```sql
 DELIMITER //
 CREATE TRIGGER booking_status_update 
 AFTER UPDATE ON bookings
@@ -320,556 +128,420 @@ BEGIN
     END IF;
 END //
 DELIMITER ;
-\`\`\`
+```
 
-**Implementasi dalam Kode**:
-\`\`\`php
-// File: admin/bookings.php (lines 60-75)
-// Trigger otomatis dijalankan saat status booking diupdate
-if (isset($_POST['update_status'])) {
-    $booking_id = $_POST['booking_id'];
-    $new_status = $_POST['status'];
+2. **Trigger untuk Auto-Generate Payment Record**
+
+
+```sql
+DELIMITER //
+CREATE TRIGGER auto_payment_record 
+AFTER UPDATE ON bookings
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'approved' AND OLD.status = 'pending' THEN
+        INSERT INTO payments (booking_id, amount, payment_date, payment_method, status)
+        VALUES (NEW.id, NEW.total_amount, CURDATE(), 'transfer', 'pending');
+    END IF;
+END //
+DELIMITER ;
+```
+
+#### Bukti Penggunaan Trigger dalam Aplikasi
+
+**Di file `admin/bookings.php`**:
+
+```php
+// Ketika admin approve booking, trigger otomatis akan:
+// 1. Update status kamar menjadi 'occupied'
+// 2. Create payment record
+// 3. Log aktivitas ke activity_logs
+
+$update_query = "UPDATE bookings SET status = 'approved' WHERE id = ?";
+$update_stmt = $db->prepare($update_query);
+$update_stmt->execute([$booking_id]);
+
+// Trigger akan berjalan otomatis setelah UPDATE ini
+```
+
+**Di file `scripts/advanced_task_scheduler.php`**:
+
+```php
+// Proses expired bookings - trigger akan otomatis update room status
+$update_query = "UPDATE bookings SET status = 'completed' WHERE id = ?";
+$update_stmt = $db->prepare($update_query);
+$update_stmt->execute([$booking['id']]);
+
+// Trigger 'booking_status_update' akan otomatis:
+// - Set room status ke 'available'
+// - Log aktivitas completion
+```
+
+### 🔄 Transaction
+
+Transaction memastikan bahwa serangkaian operasi database berjalan sebagai satu kesatuan yang utuh. Jika satu operasi gagal, semua operasi dibatalkan.
+
+#### 1. Transaction untuk Proses Booking
+
+**Implementasi di file**: `booking.php`
+
+```php
+try {
+    $db->beginTransaction();
     
-    $query = "UPDATE bookings SET status = ? WHERE id = ?";
-    $stmt = $db->prepare($query);
-    $stmt->execute([$new_status, $booking_id]);
+    // Calculate end date
+    $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $duration . ' months'));
+    $total_amount = $room['price'] * $duration;
     
-    // Trigger 'booking_status_update' otomatis:
-    // 1. Update status room
-    // 2. Log aktivitas
+    // Create booking
+    $booking_query = "INSERT INTO bookings (user_id, room_id, start_date, end_date, duration_months, total_amount, status, booking_date) 
+                     VALUES (?, ?, ?, ?, ?, ?, 'pending', CURDATE())";
+    $booking_stmt = $db->prepare($booking_query);
+    $booking_stmt->execute([$user_id, $room_id, $start_date, $end_date, $duration, $total_amount]);
+    
+    $booking_id = $db->lastInsertId();
+    
+    // Create payment record
+    $payment_query = "INSERT INTO payments (booking_id, amount, payment_date, payment_method, status) 
+                     VALUES (?, ?, CURDATE(), ?, ?)";
+    $payment_stmt = $db->prepare($payment_query);
+    $payment_stmt->execute([$booking_id, $total_amount, $payment_method, $payment_status]);
+    
+    // Update room status
+    $room_update = "UPDATE rooms SET status = 'booked' WHERE id = ?";
+    $room_stmt = $db->prepare($room_update);
+    $room_stmt->execute([$room_id]);
+    
+    $db->commit();
+    $success = "Booking berhasil dibuat!";
+    
+} catch (PDOException $e) {
+    $db->rollback();
+    $error = "Terjadi kesalahan sistem. Silakan coba lagi.";
 }
-\`\`\`
+```
 
-### Database Transactions
+Transaction ini memastikan bahwa pembuatan booking, payment record, dan update status kamar berjalan sebagai satu kesatuan.
 
-Sistem menggunakan transactions untuk memastikan konsistensi data.
+#### 2. Transaction untuk Payment Verification
 
-#### 1. Booking Transaction
-**File**: `booking.php`
+**Implementasi di file**: `admin/payments.php`
 
-\`\`\`php
-// Lines 45-85
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $start_date = $_POST['start_date'];
-    $duration = (int)$_POST['duration'];
-    $payment_method = $_POST['payment_method'];
+```php
+try {
+    $db->beginTransaction();
     
-    // Validation
-    if (empty($start_date) || $duration <= 0) {
-        $error = "Semua field harus diisi dengan benar.";
-    } elseif (strtotime($start_date) < strtotime(date('Y-m-d'))) {
-        $error = "Tanggal mulai tidak boleh kurang dari hari ini.";
-    } else {
-        try {
-            // START TRANSACTION
-            $db->beginTransaction();
-            
-            // Calculate end date
-            $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $duration . ' months'));
-            $total_amount = $room['price'] * $duration;
-            
-            // 1. Create booking
-            $booking_query = "INSERT INTO bookings (user_id, room_id, start_date, end_date, duration_months, total_amount, status, booking_date, created_at) 
-                             VALUES (?, ?, ?, ?, ?, ?, 'pending', CURDATE(), NOW())";
-            $booking_stmt = $db->prepare($booking_query);
-            $booking_stmt->execute([$user_id, $room_id, $start_date, $end_date, $duration, $total_amount]);
-            
-            $booking_id = $db->lastInsertId();
-            
-            // 2. Create payment record
-            $payment_status = ($payment_method === 'cash') ? 'completed' : 'pending';
-            $payment_query = "INSERT INTO payments (booking_id, amount, payment_date, payment_method, status) 
-                             VALUES (?, ?, CURDATE(), ?, ?)";
-            $payment_stmt = $db->prepare($payment_query);
-            $payment_stmt->execute([$booking_id, $total_amount, $payment_method, $payment_status]);
-            
-            // 3. Update room status
-            $room_update = "UPDATE rooms SET status = 'booked' WHERE id = ?";
-            $room_stmt = $db->prepare($room_update);
-            $room_stmt->execute([$room_id]);
-            
-            // COMMIT TRANSACTION
-            $db->commit();
-            
-            $success = "Booking berhasil dibuat!";
-            
-        } catch (PDOException $e) {
-            // ROLLBACK ON ERROR
-            $db->rollback();
-            $error = "Terjadi kesalahan sistem. Silakan coba lagi.";
-        }
+    // Update payment status
+    $update_query = "UPDATE payments SET status = 'completed', verified_by = ?, verified_at = NOW() WHERE id = ?";
+    $update_stmt = $db->prepare($update_query);
+    $update_stmt->execute([$admin_id, $payment_id]);
+    
+    // Get booking info dan update booking status
+    $booking_query = "SELECT b.*, r.room_id FROM payments p 
+                     JOIN bookings b ON p.booking_id = b.id 
+                     WHERE p.id = ?";
+    $booking_stmt = $db->prepare($booking_query);
+    $booking_stmt->execute([$payment_id]);
+    $booking = $booking_stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($booking) {
+        // Update booking status to active
+        $booking_update = "UPDATE bookings SET status = 'active' WHERE id = ?";
+        $booking_stmt = $db->prepare($booking_update);
+        $booking_stmt->execute([$booking['id']]);
+        
+        // Update room status to occupied
+        $room_update = "UPDATE rooms SET status = 'occupied' WHERE id = ?";
+        $room_stmt = $db->prepare($room_update);
+        $room_stmt->execute([$booking['room_id']]);
     }
+    
+    // Log activity
+    $log_query = "INSERT INTO activity_logs (user_id, action, description, ip_address) 
+                 VALUES (?, 'APPROVE_PAYMENT', ?, ?)";
+    $log_stmt = $db->prepare($log_query);
+    $log_stmt->execute([$admin_id, "Approved payment ID: {$payment_id}", $_SERVER['REMOTE_ADDR']]);
+    
+    $db->commit();
+    $success = "Pembayaran berhasil diverifikasi!";
+} catch (PDOException $e) {
+    $db->rollBack();
+    $error = "Terjadi kesalahan saat memverifikasi pembayaran.";
 }
-\`\`\`
+```
 
-#### 2. Payment Verification Transaction
-**File**: `admin/payment-verification.php`
+### 📊 Stored Function
 
-\`\`\`php
-// Lines 25-55
-if (isset($_POST['verify_payment'])) {
-    $payment_id = $_POST['payment_id'];
-    $action = $_POST['action']; // 'approve' or 'reject'
-    $admin_id = getUserId();
+Stored function digunakan untuk mengembalikan nilai berdasarkan perhitungan atau query tertentu.
+
+#### 1. `GetTotalRevenue` - Fungsi untuk menghitung total pendapatan
+
+**Implementasi di file**: `admin/dashboard.php`
+
+```php
+// Hitung total revenue menggunakan stored function
+$revenue_query = "SELECT GetTotalRevenue(?, ?) as total_revenue";
+$stmt = $db->prepare($revenue_query);
+$stmt->execute([date('Y-m-01'), date('Y-m-t')]);
+$revenue_result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$monthly_revenue = $revenue_result['total_revenue'];
+```
+
+```php
+<div class="card stats-card">
+    <div class="card-body text-center">
+        <i class="fas fa-money-bill-wave fa-3x mb-3 text-success"></i>
+        <h3>Rp <?php echo number_format($monthly_revenue, 0, ',', '.'); ?></h3>
+        <p class="text-muted">Revenue Bulan Ini</p>
+    </div>
+</div>
+```
+
+#### 2. `GetOccupancyRate` - Fungsi untuk menghitung tingkat hunian
+
+**Implementasi di file**: `admin/reports.php`
+
+```php
+// Hitung occupancy rate menggunakan stored function
+$occupancy_query = "SELECT GetOccupancyRate() as occupancy_rate";
+$stmt = $db->prepare($occupancy_query);
+$stmt->execute();
+$occupancy_result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$occupancy_rate = $occupancy_result['occupancy_rate'];
+```
+
+```php
+<div class="progress mb-3">
+    <div class="progress-bar bg-success" role="progressbar" 
+         style="width: <?php echo $occupancy_rate; ?>%" 
+         aria-valuenow="<?php echo $occupancy_rate; ?>" 
+         aria-valuemin="0" aria-valuemax="100">
+        <?php echo number_format($occupancy_rate, 1); ?>%
+    </div>
+</div>
+<p class="text-center">Tingkat Hunian Saat Ini</p>
+```
+
+#### 3. `IsValidEmail` - Fungsi untuk validasi format email
+
+**Implementasi di file**: `register.php`
+
+```php
+// Validasi email menggunakan stored function
+$email_validation_query = "SELECT IsValidEmail(?) as is_valid";
+$stmt = $db->prepare($email_validation_query);
+$stmt->execute([$email]);
+$validation_result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$validation_result['is_valid']) {
+    $error = "Format email tidak valid!";
+}
+```
+
+## 🔄 Backup Otomatis
+
+Sistem backup otomatis diimplementasikan untuk memastikan keamanan dan integritas data dalam sistem KostQ. Backup dilakukan secara berkala untuk mencegah kehilangan data akibat kegagalan sistem atau kesalahan operasional.
+
+#### Implementasi Backup Database
+
+**1. Script Backup Otomatis (advanced_backup.sh)**
+
+```shellscript
+#!/bin/bash
+
+# Advanced Database Backup Script for Kost Management System
+DB_NAME="kost_management"
+DB_USER="root"
+DB_PASS=""
+BACKUP_DIR="/var/backups/kost_management"
+RETENTION_DAYS=30
+
+# Create backup directory
+mkdir -p "$BACKUP_DIR/full"
+mkdir -p "$BACKUP_DIR/incremental"
+
+# Function to create full backup
+create_full_backup() {
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    local backup_file="$BACKUP_DIR/full/kost_full_backup_$timestamp.sql"
+    
+    # Create full backup with routines and triggers
+    mysqldump --single-transaction --routines --triggers --events \
+              -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$backup_file"
+    
+    if [ $? -eq 0 ]; then
+        gzip "$backup_file"
+        echo "Full backup completed: $backup_file.gz"
+        
+        # Update database log
+        mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" &lt;&lt; EOF
+INSERT INTO backup_logs (backup_type, backup_file, status, end_time) 
+VALUES ('full', '$(basename "$backup_file.gz")', 'completed', NOW());
+EOF
+    fi
+}
+
+# Run backup based on parameter
+case "$1" in
+    "full")
+        create_full_backup
+        ;;
+    *)
+        echo "Usage: $0 {full|incremental|cleanup}"
+        ;;
+esac
+```
+
+**2. Task Scheduler untuk Backup Otomatis (advanced_task_scheduler.php)**
+
+```php
+public function manageBackups() {
+    $this->log("Starting backup management...");
     
     try {
-        // START TRANSACTION
-        $db->beginTransaction();
+        // Call stored procedure for backup cleanup
+        $cleanup_query = "CALL CleanupOldBackups(30, @deleted_count, @status)";
+        $stmt = $this->db->prepare($cleanup_query);
+        $stmt->execute();
         
-        // Get payment and booking info
-        $query = "SELECT p.*, b.room_id, b.user_id 
-                  FROM payments p 
-                  JOIN bookings b ON p.booking_id = b.id 
-                  WHERE p.id = ?";
-        $stmt = $db->prepare($query);
-        $stmt->execute([$payment_id]);
-        $payment = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Get results
+        $result_query = "SELECT @deleted_count as deleted_count, @status as status";
+        $stmt = $this->db->prepare($result_query);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($action === 'approve') {
-            // 1. Update payment status
-            $update_payment = "UPDATE payments 
-                              SET status = 'completed', verified_by = ?, verified_at = NOW() 
-                              WHERE id = ?";
-            $stmt = $db->prepare($update_payment);
-            $stmt->execute([$admin_id, $payment_id]);
-            
-            // 2. Update booking status
-            $update_booking = "UPDATE bookings SET status = 'active' WHERE id = ?";
-            $stmt = $db->prepare($update_booking);
-            $stmt->execute([$payment['booking_id']]);
-            
-            // 3. Update room status
-            $update_room = "UPDATE rooms SET status = 'occupied' WHERE id = ?";
-            $stmt = $db->prepare($update_room);
-            $stmt->execute([$payment['room_id']]);
-            
-        } else {
-            // Reject payment
-            $update_payment = "UPDATE payments 
-                              SET status = 'rejected', verified_by = ?, verified_at = NOW() 
-                              WHERE id = ?";
-            $stmt = $db->prepare($update_payment);
-            $stmt->execute([$admin_id, $payment_id]);
-        }
+        $this->log("Backup cleanup: " . $result['status']);
         
-        // 4. Log activity
-        $log_query = "INSERT INTO activity_logs (user_id, action, description, ip_address) 
-                     VALUES (?, ?, ?, ?)";
-        $log_stmt = $db->prepare($log_query);
-        $log_stmt->execute([
-            $admin_id, 
-            'VERIFY_PAYMENT', 
-            "Payment {$action}d for booking ID: {$payment['booking_id']}", 
-            $_SERVER['REMOTE_ADDR']
-        ]);
+        // Create automated backup
+        $backup_query = "CALL CreateDatabaseBackup('incremental', '/var/backups/kost/', @backup_id, @backup_status)";
+        $stmt = $this->db->prepare($backup_query);
+        $stmt->execute();
         
-        // COMMIT TRANSACTION
-        $db->commit();
-        
-        $_SESSION['success'] = "Pembayaran berhasil " . ($action === 'approve' ? 'disetujui' : 'ditolak');
+        return true;
         
     } catch (PDOException $e) {
-        // ROLLBACK ON ERROR
-        $db->rollback();
-        $_SESSION['error'] = "Terjadi kesalahan sistem.";
+        $this->log("Error managing backups: " . $e->getMessage(), 'ERROR');
+        return false;
     }
 }
-\`\`\`
+```
 
-## 🗄️ Implementasi Backup Database
+#### Fitur Backup yang Diimplementasikan
 
-### Manual Backup System
-**File**: `admin/reports.php`
+1. **Backup Database Lengkap**: Menggunakan `mysqldump` untuk backup lengkap termasuk stored procedures, functions, dan triggers
+2. **Backup Incremental**: Backup hanya data yang berubah sejak backup terakhir
+3. **Automated Cleanup**: Pembersihan otomatis backup lama berdasarkan retention policy
+4. **Monitoring & Logging**: Pencatatan semua aktivitas backup ke database
+5. **Scheduled Execution**: Integrasi dengan cron job untuk eksekusi otomatis
 
-\`\`\`php
-// Lines 15-50
-function performDatabaseBackup() {
-    $host = 'localhost';
-    $username = 'root';
-    $password = '';
-    $database = 'kost_management';
-    
-    $backup_file = 'backup_full_' . date('Y-m-d_H-i-s') . '.sql';
-    $backup_path = '../backups/';
-    
-    // Create backup directory if it doesn't exist
-    if (!file_exists($backup_path)) {
-        mkdir($backup_path, 0755, true);
-    }
-    
-    $full_path = $backup_path . $backup_file;
-    
-    // Use mysqldump command
-    $command = "mysqldump --host=$host --user=$username --password=$password $database > $full_path";
-    
-    // Execute the command
-    $output = null;
-    $return_var = null;
-    exec($command, $output, $return_var);
-    
-    if ($return_var === 0) {
-        // Update last backup time
-        file_put_contents($backup_path . 'last_backup.txt', date('d/m/Y H:i:s'));
-        
-        return [
-            'success' => true,
-            'message' => 'Backup full database berhasil dibuat: ' . $backup_file,
-            'file' => $backup_file,
-            'size' => filesize($full_path)
+
+#### Keuntungan Sistem Backup
+
+- **Disaster Recovery**: Pemulihan data cepat jika terjadi kegagalan sistem
+- **Data Integrity**: Konsistensi data dengan backup teratur dan terverifikasi
+- **Business Continuity**: Meminimalkan downtime dalam operasional bisnis kost
+- **Compliance**: Memenuhi standar keamanan data untuk sistem pembayaran
+
+
+## 🧩 Relevansi Proyek dengan Pemrosesan Data Terdistribusi
+
+Meskipun KostQ saat ini diimplementasikan sebagai sistem monolitik, proyek ini memiliki relevansi yang kuat dengan konsep pemrosesan data terdistribusi dan dapat dikembangkan ke arah tersebut.
+
+#### Aspek Terdistribusi dalam Sistem Manajemen Kost
+
+**1. Skalabilitas Horizontal**
+
+- Sistem dapat didistribusikan berdasarkan lokasi geografis (kost per kota/region)
+- Database sharding berdasarkan area atau tipe properti
+- Load balancing untuk menangani traffic tinggi saat peak booking season
+
+
+**2. Konsistensi Data Terdistribusi**
+
+- Booking dan pembayaran memerlukan konsistensi yang ketat (ACID properties)
+- Distributed transactions untuk memastikan integritas data lintas region
+- Conflict resolution untuk booking yang terjadi bersamaan pada kamar yang sama
+
+
+**3. Real-time Processing**
+
+- Sistem notifikasi real-time untuk status booking dan pembayaran
+- Event streaming untuk update ketersediaan kamar
+- Distributed caching untuk performa optimal dalam pencarian kamar
+
+
+**4. Microservices Architecture**
+
+- **User Service**: Manajemen autentikasi dan profil pengguna
+- **Room Service**: Manajemen data kamar dan ketersediaan
+- **Booking Service**: Proses booking dan manajemen reservasi
+- **Payment Service**: Pemrosesan pembayaran dan verifikasi
+- **Notification Service**: Sistem notifikasi multi-channel
+
+
+**5. Data Analytics Terdistribusi**
+
+- Analisis pola booking untuk optimasi harga dan ketersediaan
+- Predictive analytics untuk demand forecasting
+- Distributed data warehouse untuk business intelligence
+
+
+#### Implementasi Konsep Terdistribusi
+
+**Event-Driven Architecture**
+
+```php
+// Contoh implementasi event publishing
+class BookingEventPublisher {
+    public function publishBookingCreated($booking_data) {
+        $event = [
+            'event_type' => 'booking.created',
+            'timestamp' => time(),
+            'data' => $booking_data
         ];
-    } else {
-        return [
-            'success' => false,
-            'message' => 'Gagal membuat backup database'
-        ];
-    }
-}
-
-// Handle backup request
-if (isset($_POST['backup_database'])) {
-    $backup_result = performDatabaseBackup();
-}
-\`\`\`
-
-### Table-Specific Backup
-\`\`\`php
-// Lines 52-85
-function performTableBackup($table_name) {
-    $host = 'localhost';
-    $username = 'root';
-    $password = '';
-    $database = 'kost_management';
-    
-    $backup_file = 'backup_table_' . $table_name . '_' . date('Y-m-d_H-i-s') . '.sql';
-    $backup_path = '../backups/';
-    
-    // Create backup directory if it doesn't exist
-    if (!file_exists($backup_path)) {
-        mkdir($backup_path, 0755, true);
-    }
-    
-    $full_path = $backup_path . $backup_file;
-    
-    // Use mysqldump command for specific table
-    $command = "mysqldump --host=$host --user=$username --password=$password $database $table_name > $full_path";
-    
-    // Execute the command
-    $output = null;
-    $return_var = null;
-    exec($command, $output, $return_var);
-    
-    if ($return_var === 0) {
-        return [
-            'success' => true,
-            'message' => 'Backup tabel ' . $table_name . ' berhasil dibuat: ' . $backup_file,
-            'file' => $backup_file,
-            'size' => filesize($full_path)
-        ];
-    } else {
-        return [
-            'success' => false,
-            'message' => 'Gagal membuat backup tabel ' . $table_name
-        ];
-    }
-}
-\`\`\`
-
-### Database Restore
-\`\`\`php
-// Lines 87-125
-function restoreDatabase($file) {
-    $host = 'localhost';
-    $username = 'root';
-    $password = '';
-    $database = 'kost_management';
-    
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        return [
-            'success' => false,
-            'message' => 'Error uploading file'
-        ];
-    }
-    
-    $upload_path = '../backups/restore_' . date('Y-m-d_H-i-s') . '.sql';
-    
-    if (move_uploaded_file($file['tmp_name'], $upload_path)) {
-        // Use mysql command to restore
-        $command = "mysql --host=$host --user=$username --password=$password $database < $upload_path";
         
-        $output = null;
-        $return_var = null;
-        exec($command, $output, $return_var);
-        
-        // Clean up uploaded file
-        unlink($upload_path);
-        
-        if ($return_var === 0) {
-            return [
-                'success' => true,
-                'message' => 'Database berhasil direstore'
-            ];
-        } else {
-            return [
-                'success' => false,
-                'message' => 'Gagal restore database'
-            ];
-        }
-    } else {
-        return [
-            'success' => false,
-            'message' => 'Gagal upload file'
-        ];
-    }
-}
-\`\`\`
-
-## ⚙️ Task Scheduler Implementation
-
-**File**: `scripts/task-scheduler.php`
-
-\`\`\`php
-<?php
-// Task Scheduler Script
-require_once '../config/database.php';
-
-class TaskScheduler {
-    private $db;
-    
-    public function __construct() {
-        $database = new Database();
-        $this->db = $database->getConnection();
-    }
-    
-    // Clean old logs (older than 90 days)
-    public function cleanOldLogs() {
-        try {
-            $query = "DELETE FROM activity_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            
-            $deleted = $stmt->rowCount();
-            echo "Cleaned $deleted old log entries\n";
-            
-            return true;
-        } catch (PDOException $e) {
-            echo "Error cleaning logs: " . $e->getMessage() . "\n";
-            return false;
-        }
-    }
-    
-    // Update expired bookings
-    public function updateExpiredBookings() {
-        try {
-            // Update bookings that have passed their end date
-            $query = "UPDATE bookings SET status = 'completed' 
-                     WHERE status = 'active' AND end_date < CURDATE()";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            
-            $updated = $stmt->rowCount();
-            echo "Updated $updated expired bookings\n";
-            
-            // Update room status for completed bookings
-            $query = "UPDATE rooms r 
-                     INNER JOIN bookings b ON r.id = b.room_id 
-                     SET r.status = 'available' 
-                     WHERE b.status = 'completed' AND r.status = 'occupied'";
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            
-            $rooms_updated = $stmt->rowCount();
-            echo "Updated $rooms_updated room statuses\n";
-            
-            return true;
-        } catch (PDOException $e) {
-            echo "Error updating expired bookings: " . $e->getMessage() . "\n";
-            return false;
-        }
-    }
-    
-    // Send payment reminders
-    public function sendPaymentReminders() {
-        try {
-            // Find bookings with pending payments due in 3 days
-            $query = "SELECT b.*, u.email, u.full_name, r.room_number, p.amount
-                     FROM bookings b
-                     INNER JOIN users u ON b.user_id = u.id
-                     INNER JOIN rooms r ON b.room_id = r.id
-                     INNER JOIN payments p ON b.id = p.booking_id
-                     WHERE b.status = 'approved' 
-                     AND p.status = 'pending'
-                     AND DATEDIFF(b.start_date, CURDATE()) <= 3
-                     AND DATEDIFF(b.start_date, CURDATE()) >= 0";
-            
-            $stmt = $this->db->prepare($query);
-            $stmt->execute();
-            $pending_payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            foreach ($pending_payments as $payment) {
-                // In a real application, you would send email here
-                echo "Payment reminder needed for: {$payment['full_name']} - Room {$payment['room_number']}\n";
-                
-                // Log the reminder
-                $log_query = "INSERT INTO activity_logs (user_id, action, description) 
-                             VALUES (?, 'PAYMENT_REMINDER', ?)";
-                $log_stmt = $this->db->prepare($log_query);
-                $log_stmt->execute([
-                    $payment['user_id'], 
-                    "Payment reminder sent for booking ID: {$payment['id']}"
-                ]);
-            }
-            
-            echo "Processed " . count($pending_payments) . " payment reminders\n";
-            return true;
-        } catch (PDOException $e) {
-            echo "Error sending payment reminders: " . $e->getMessage() . "\n";
-            return false;
-        }
-    }
-    
-    // Generate monthly report
-    public function generateMonthlyReport() {
-        try {
-            $current_month = date('Y-m');
-            
-            // Get monthly statistics
-            $stats_query = "SELECT 
-                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_bookings,
-                COUNT(CASE WHEN status = 'active' THEN 1 END) as active_bookings,
-                SUM(CASE WHEN status IN ('completed', 'active') THEN total_amount ELSE 0 END) as total_revenue
-                FROM bookings 
-                WHERE DATE_FORMAT(created_at, '%Y-%m') = ?";
-            
-            $stmt = $this->db->prepare($stats_query);
-            $stmt->execute([$current_month]);
-            $stats = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            // Get occupancy rate
-            $occupancy_query = "SELECT GetOccupancyRate() as occupancy_rate";
-            $stmt = $this->db->prepare($occupancy_query);
-            $stmt->execute();
-            $occupancy = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            echo "Monthly Report for $current_month:\n";
-            echo "- Completed Bookings: {$stats['completed_bookings']}\n";
-            echo "- Active Bookings: {$stats['active_bookings']}\n";
-            echo "- Total Revenue: Rp " . number_format($stats['total_revenue'], 0, ',', '.') . "\n";
-            echo "- Occupancy Rate: {$occupancy['occupancy_rate']}%\n";
-            
-            return true;
-        } catch (PDOException $e) {
-            echo "Error generating monthly report: " . $e->getMessage() . "\n";
-            return false;
-        }
-    }
-    
-    // Run all scheduled tasks
-    public function runAllTasks() {
-        echo "Starting scheduled tasks at " . date('Y-m-d H:i:s') . "\n";
-        echo str_repeat('-', 50) . "\n";
-        
-        $this->cleanOldLogs();
-        echo "\n";
-        
-        $this->updateExpiredBookings();
-        echo "\n";
-        
-        $this->sendPaymentReminders();
-        echo "\n";
-        
-        // Run monthly report only on the 1st of each month
-        if (date('d') == '01') {
-            $this->generateMonthlyReport();
-            echo "\n";
-        }
-        
-        echo str_repeat('-', 50) . "\n";
-        echo "All tasks completed at " . date('Y-m-d H:i:s') . "\n";
+        // Publish ke message queue (Redis/RabbitMQ)
+        $this->messageQueue->publish('booking_events', json_encode($event));
     }
 }
 
-// Run the scheduler
-$scheduler = new TaskScheduler();
-$scheduler->runAllTasks();
-?>
-\`\`\`
+// Event consumer untuk update room availability
+class RoomAvailabilityConsumer {
+    public function handleBookingCreated($event_data) {
+        // Update room status across distributed nodes
+        $this->distributedCache->invalidate("room_availability_{$event_data['room_id']}");
+        $this->notificationService->notifyRoomUnavailable($event_data['room_id']);
+    }
+}
+```
 
-### Cron Job Setup
+**Distributed Caching Strategy**
 
-Untuk menjalankan task scheduler secara otomatis:
+```php
+// Implementasi distributed caching untuk room search
+class DistributedRoomCache {
+    private $redis_cluster;
+    
+    public function searchRooms($criteria) {
+        $cache_key = "room_search_" . md5(serialize($criteria));
+        
+        // Try to get from distributed cache first
+        $cached_result = $this->redis_cluster->get($cache_key);
+        if ($cached_result) {
+            return json_decode($cached_result, true);
+        }
+        
+        // If not in cache, query database and cache result
+        $rooms = $this->database->searchRooms($criteria);
+        $this->redis_cluster->setex($cache_key, 300, json_encode($rooms)); // Cache for 5 minutes
+        
+        return $rooms;
+    }
+}
+```
 
-**Linux/Mac**:
-\`\`\`bash
-# Edit crontab
-crontab -e
+Proyek KostQ mendemonstrasikan pemahaman yang solid tentang konsep database lanjutan dan dapat dengan mudah diadaptasi untuk implementasi arsitektur terdistribusi seiring dengan pertumbuhan skala bisnis.
 
-# Add this line to run daily at 2 AM
-0 2 * * * /usr/bin/php /path/to/kost-management-system/scripts/task-scheduler.php
-\`\`\`
 
-**Windows Task Scheduler**:
-1. Buka Task Scheduler
-2. Create Basic Task
-3. Set trigger: Daily at 2:00 AM
-4. Action: Start a program
-5. Program: `php.exe`
-6. Arguments: `/path/to/task-scheduler.php`
-
-## 🚀 Instalasi dan Setup
-
-### Prerequisites
-- PHP 7.4 atau lebih tinggi
-- MySQL 8.0 atau lebih tinggi
-- Apache/Nginx web server
-- Composer (optional)
-
-### Langkah Instalasi
-
-1. **Clone Repository**
-\`\`\`bash
-git clone https://github.com/username/kost-management-system.git
-cd kost-management-system
-\`\`\`
-
-2. **Setup Database**
-\`\`\`bash
-# Login ke MySQL
-mysql -u root -p
-
-# Create database
-CREATE DATABASE kost_management;
-USE kost_management;
-
-# Import schema
-SOURCE database/schema.sql;
-SOURCE database/procedures.sql;
-SOURCE database/functions.sql;
-SOURCE database/triggers.sql;
-\`\`\`
-
-3. **Konfigurasi Database**
-Edit file `config/database.php`:
-\`\`\`php
-private $host = "localhost";
-private $db_name = "kost_management";
-private $username = "root";
-private $password = "your_password";
-\`\`\`
-
-4. **Set Permissions**
-\`\`\`bash
-chmod 755 uploads/
-chmod 755 backups/
-chmod 644 config/database.php
-\`\`\`
-
-5. **Setup Virtual Host** (Apache)
-```apache
-<VirtualHost *:80>
-    ServerName kost-management.local
-    DocumentRoot /path/to/kost-management-system
-    <Directory /path/to/kost-management-system>
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
