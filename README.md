@@ -499,7 +499,6 @@ Meskipun KostQ saat ini diimplementasikan sebagai sistem monolitik, proyek ini m
 **Event-Driven Architecture**
 
 ```php
-// Contoh implementasi event publishing
 class BookingEventPublisher {
     public function publishBookingCreated($booking_data) {
         $event = [
@@ -508,12 +507,10 @@ class BookingEventPublisher {
             'data' => $booking_data
         ];
         
-        // Publish ke message queue (Redis/RabbitMQ)
         $this->messageQueue->publish('booking_events', json_encode($event));
     }
 }
 
-// Event consumer untuk update room availability
 class RoomAvailabilityConsumer {
     public function handleBookingCreated($event_data) {
         // Update room status across distributed nodes
@@ -526,20 +523,17 @@ class RoomAvailabilityConsumer {
 **Distributed Caching Strategy**
 
 ```php
-// Implementasi distributed caching untuk room search
 class DistributedRoomCache {
     private $redis_cluster;
     
     public function searchRooms($criteria) {
         $cache_key = "room_search_" . md5(serialize($criteria));
         
-        // Try to get from distributed cache first
         $cached_result = $this->redis_cluster->get($cache_key);
         if ($cached_result) {
             return json_decode($cached_result, true);
         }
         
-        // If not in cache, query database and cache result
         $rooms = $this->database->searchRooms($criteria);
         $this->redis_cluster->setex($cache_key, 300, json_encode($rooms)); // Cache for 5 minutes
         
