@@ -22,7 +22,7 @@ Sistem ini mengimplementasikan konsep database lanjutan untuk memastikan keamana
 
 Stored procedure digunakan untuk mengenkapsulasi logika bisnis kompleks di sisi database, memastikan konsistensi dan keamanan operasi.
 
-(uploads/receipts/procedure.png)
+![KostQ](uploads/receipts/procedure.png)
 
 #### 1. `BookRoom` - Prosedur untuk booking kamar
 
@@ -104,7 +104,7 @@ Prosedur ini menghitung total pendapatan, jumlah booking, dan rata-rata nilai bo
 
 Trigger adalah kode yang dijalankan secara otomatis di database ketika terjadi operasi tertentu (INSERT, UPDATE, DELETE) pada tabel. Dalam sistem KostQ, trigger diimplementasikan untuk menjaga konsistensi data dan otomatisasi proses bisnis.
 
-(uploads/receipts/trigger.png)
+![KostQ](uploads/receipts/trigger.png)
 
 #### Implementasi Trigger di Database
 
@@ -278,7 +278,7 @@ try {
 
 Stored function digunakan untuk mengembalikan nilai berdasarkan perhitungan atau query tertentu.
 
-(uploads/receipts/function.png)
+![KostQ](uploads/receipts/function.png)
 
 #### 1. `GetTotalRevenue` - Fungsi untuk menghitung total pendapatan
 
