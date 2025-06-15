@@ -193,11 +193,11 @@ Transaction memastikan bahwa serangkaian operasi database berjalan sebagai satu 
 try {
     $db->beginTransaction();
     
-    // Calculate end date
+    // kalkulasi dan tanggal
     $end_date = date('Y-m-d', strtotime($start_date . ' + ' . $duration . ' months'));
     $total_amount = $room['price'] * $duration;
     
-    // Create booking
+    // membuat booking
     $booking_query = "INSERT INTO bookings (user_id, room_id, start_date, end_date, duration_months, total_amount, status, booking_date) 
                      VALUES (?, ?, ?, ?, ?, ?, 'pending', CURDATE())";
     $booking_stmt = $db->prepare($booking_query);
@@ -205,13 +205,13 @@ try {
     
     $booking_id = $db->lastInsertId();
     
-    // Create payment record
+    // mencatat pembayaran
     $payment_query = "INSERT INTO payments (booking_id, amount, payment_date, payment_method, status) 
                      VALUES (?, ?, CURDATE(), ?, ?)";
     $payment_stmt = $db->prepare($payment_query);
     $payment_stmt->execute([$booking_id, $total_amount, $payment_method, $payment_status]);
     
-    // Update room status
+    // Update kamar status
     $room_update = "UPDATE rooms SET status = 'booked' WHERE id = ?";
     $room_stmt = $db->prepare($room_update);
     $room_stmt->execute([$room_id]);
@@ -235,12 +235,12 @@ Transaction ini memastikan bahwa pembuatan booking, payment record, dan update s
 try {
     $db->beginTransaction();
     
-    // Update payment status
+    // Update pembayaran
     $update_query = "UPDATE payments SET status = 'completed', verified_by = ?, verified_at = NOW() WHERE id = ?";
     $update_stmt = $db->prepare($update_query);
     $update_stmt->execute([$admin_id, $payment_id]);
     
-    // Get booking info dan update booking status
+    // mengambil booking info dan update booking status
     $booking_query = "SELECT b.*, r.room_id FROM payments p 
                      JOIN bookings b ON p.booking_id = b.id 
                      WHERE p.id = ?";
@@ -249,12 +249,12 @@ try {
     $booking = $booking_stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($booking) {
-        // Update booking status to active
+        // Update booking status active
         $booking_update = "UPDATE bookings SET status = 'active' WHERE id = ?";
         $booking_stmt = $db->prepare($booking_update);
         $booking_stmt->execute([$booking['id']]);
         
-        // Update room status to occupied
+        // Update kamar status occupied
         $room_update = "UPDATE rooms SET status = 'occupied' WHERE id = ?";
         $room_stmt = $db->prepare($room_update);
         $room_stmt->execute([$booking['room_id']]);
@@ -364,16 +364,16 @@ DB_PASS=""
 BACKUP_DIR="/var/backups/kost_management"
 RETENTION_DAYS=30
 
-# Create backup directory
+# membuat backup directory
 mkdir -p "$BACKUP_DIR/full"
 mkdir -p "$BACKUP_DIR/incremental"
 
-# Function to create full backup
+# Function untuk full backup
 create_full_backup() {
     local timestamp=$(date +%Y%m%d_%H%M%S)
     local backup_file="$BACKUP_DIR/full/kost_full_backup_$timestamp.sql"
     
-    # Create full backup with routines and triggers
+    # buat full backup bareng routines and triggers
     mysqldump --single-transaction --routines --triggers --events \
               -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$backup_file"
     
@@ -407,12 +407,12 @@ public function manageBackups() {
     $this->log("Starting backup management...");
     
     try {
-        // Call stored procedure for backup cleanup
+        // memanggil  prosedur untuk backup cleanup
         $cleanup_query = "CALL CleanupOldBackups(30, @deleted_count, @status)";
         $stmt = $this->db->prepare($cleanup_query);
         $stmt->execute();
         
-        // Get results
+        // hasil
         $result_query = "SELECT @deleted_count as deleted_count, @status as status";
         $stmt = $this->db->prepare($result_query);
         $stmt->execute();
@@ -420,7 +420,7 @@ public function manageBackups() {
         
         $this->log("Backup cleanup: " . $result['status']);
         
-        // Create automated backup
+        // memabuat otomatis backup
         $backup_query = "CALL CreateDatabaseBackup('incremental', '/var/backups/kost/', @backup_id, @backup_status)";
         $stmt = $this->db->prepare($backup_query);
         $stmt->execute();
