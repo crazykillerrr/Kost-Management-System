@@ -2,7 +2,7 @@
 
 KostQ adalah platform manajemen kost online yang memungkinkan penyewa untuk mencari dan memesan kamar kost, serta admin untuk mengelola properti, booking, dan pembayaran. Sistem ini dibangun menggunakan PHP dan MySQL dengan memanfaatkan stored procedure, trigger, transaction, dan stored function untuk memastikan integritas data dan keamanan transaksi.
 
-![KostQ](assets/payment-info.png)
+![KostQ](uploads/receipts/kostq.jpg)
 
 ## 📌 Deskripsi Proyek
 
